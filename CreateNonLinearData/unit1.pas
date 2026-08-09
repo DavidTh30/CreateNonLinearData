@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
   DBGrids, Grids, TAGraph, TASeries, TASources, TATools, Unit2, Unit3,
-  Types, TAChartUtils, FileUtil, LCLType, Menus, Spin, IniFiles;
+  Types, TAChartUtils, FileUtil, LCLType, Menus, Spin, IniFiles, TACustomSource;
 
 type
 
@@ -19,6 +19,7 @@ type
     Button3: TButton;
     Button4: TButton;
     Button5: TButton;
+    Button6: TButton;
     chPoints: TChart;
     chPointsLineSeries1: TLineSeries;
     chPointsLineSeries2: TLineSeries;
@@ -29,22 +30,33 @@ type
     Label1: TLabel;
     Label2: TLabel;
     Label3: TLabel;
+    ListChartSource1: TListChartSource;
     Memo1: TMemo;
-    MenuItem1: TMenuItem;
+    MenuClearDefault: TMenuItem;
+    MenuClearSource2: TMenuItem;
+    MenuLoasSource2: TMenuItem;
     MenuSaveDefault: TMenuItem;
     MenuOpenDefault: TMenuItem;
     PopupMenu1: TPopupMenu;
+    ScrollBar1: TScrollBar;
+    Timer1: TTimer;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
     procedure Button4Click(Sender: TObject);
     procedure Button5Click(Sender: TObject);
+    procedure Button6Click(Sender: TObject);
     procedure ctPointsDataPointDragTool1AfterMouseUp(ATool: TChartTool;
       APoint: TPoint);
     procedure FormCreate(Sender: TObject);
-    procedure MenuItem1Click(Sender: TObject);
+    function ListChartSource1Compare(AItem1, AItem2: Pointer): Integer;
+    procedure MenuClearDefaultClick(Sender: TObject);
+    procedure MenuClearSource2Click(Sender: TObject);
+    procedure MenuLoasSource2Click(Sender: TObject);
     procedure MenuOpenDefaultClick(Sender: TObject);
     procedure MenuSaveDefaultClick(Sender: TObject);
+    procedure ScrollBar1Change(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
   private
 
   public
@@ -58,6 +70,7 @@ var
   XY01: array[1..240, 0..1] of double;
   XY02: array[1..240, 0..1] of double;
   X1,X2:integer;
+  Raw:extended;
 
 implementation
 
@@ -130,11 +143,71 @@ begin
     XY01[i,0]:=i;
     XY02[i,0]:=1;
   end;
+  Raw:=(ScrollBar1.Position*(-1))-600;
+  Raw:=Raw/100;
 end;
 
-procedure TForm1.MenuItem1Click(Sender: TObject);
+function TForm1.ListChartSource1Compare(AItem1, AItem2: Pointer): Integer;
+begin
+
+end;
+
+procedure TForm1.MenuClearDefaultClick(Sender: TObject);
 begin
   chPointsLineSeries1.Clear;
+end;
+
+procedure TForm1.MenuClearSource2Click(Sender: TObject);
+begin
+  chPointsLineSeries2.Clear;
+end;
+
+procedure TForm1.MenuLoasSource2Click(Sender: TObject);
+var
+  i:integer;
+  s: string;
+  MyIni: TIniFile;
+  //User: string;
+  //Attempts: Integer;
+  //IsActive: Boolean;
+begin
+  if CheckDirectory('Default',Memo1) then begin Showmessage('Default Folder Error'); exit; end;
+
+  s:= GetCurrentDir+'\Default\'+ 'default.default';
+
+  with TOpenDialog.Create(Self) do
+        begin
+          InitialDir:=GetCurrentDir+'\Default';
+          Filename := '_'+FormatDateTime('DD',  Now)+'_'+FormatDateTime('MM',  Now)+'_'+FormatDateTime('YYYY',  Now)+'_'+FormatDateTime('hh',  Now)+'_'+FormatDateTime('nn',  Now)+'_'+FormatDateTime('ss',  Now)+'.default';
+          if Execute then
+            s := FileName
+          else
+          begin
+            Free; exit;
+          end;
+          Free;
+        end;
+
+  if FileExists(s) then
+  begin
+    MyIni := TIniFile.Create(s);
+    try
+      chPointsLineSeries2.Clear;
+      for i:=1 to 240 do
+      begin
+        XY02[i,0]:=StrToFloat(StrFloatToStr(MyIni.ReadString('XY', 'X'+i.ToString, '0')));
+        XY02[i,1]:=StrToFloat(StrFloatToStr(MyIni.ReadString('XY', 'Y'+i.ToString, '0.00000')));
+        chPointsLineSeries2.AddXY(XY02[i,0],XY02[i,1]);
+      end;
+    finally
+      // Always free the object
+      MyIni.Free;
+    end;
+  end
+  else
+  begin
+    Showmessage('File not found');
+  end;
 end;
 
 procedure TForm1.MenuOpenDefaultClick(Sender: TObject);
@@ -150,6 +223,19 @@ begin
 
   s:= GetCurrentDir+'\Default\'+ 'default.default';
 
+  with TOpenDialog.Create(Self) do
+        begin
+          InitialDir:=GetCurrentDir+'\Default';
+          Filename := s;
+          if Execute then
+            s := FileName
+          else
+          begin
+            Free; exit;
+          end;
+          Free;
+        end;
+
   if FileExists(s) then
   begin
     MyIni := TIniFile.Create(s);
@@ -160,7 +246,6 @@ begin
       //User := MyIni.ReadString('User-Settings', 'Username', 'Guest');
       //Attempts := MyIni.ReadInteger('DB-INFO', 'MaxAttempts', 3);
       //IsActive := MyIni.ReadBool('Settings', 'AutoLogin', False);
-
       chPointsLineSeries1.Clear;
       for i:=1 to 240 do
       begin
@@ -255,6 +340,50 @@ begin
 
 end;
 
+procedure TForm1.ScrollBar1Change(Sender: TObject);
+begin
+  Raw:=(ScrollBar1.Position*(-1))-600;
+  Raw:=Raw/100;
+  //Label2.Caption:=FloatToStr(Raw);
+end;
+
+procedure TForm1.Timer1Timer(Sender: TObject);
+begin
+
+  X1:=X1+1;
+  if X1 >240 then
+  begin
+    X1:=240;
+    Timer1.Enabled:=false;
+    if Timer1.Enabled then Button6.Caption:='Stop' else Button6.Caption:='Start';
+  end;
+
+  if chPointsLineSeries1.Count>=X1 then
+  begin
+    chPointsLineSeries1.SetYValue(X1-1, Raw);
+    XY01[X1,0]:=chPointsLineSeries1.GetXValue(X1-1);
+    XY01[X1,1]:=chPointsLineSeries1.GetYValue(X1-1);
+  end;
+
+  if (chPointsLineSeries1.Count+1)<X1 then
+  begin
+    X1:=chPointsLineSeries1.Count+1;
+    chPointsLineSeries1.AddXY(X1, Raw);
+    XY01[X1,0]:=chPointsLineSeries1.GetXValue(X1-1);
+    XY01[X1,1]:=chPointsLineSeries1.GetYValue(X1-1);
+  end;
+
+  if (chPointsLineSeries1.Count+1)=X1 then
+  begin
+    chPointsLineSeries1.AddXY(X1, Raw);
+    XY01[X1,0]:=chPointsLineSeries1.GetXValue(X1-1);
+    XY01[X1,1]:=chPointsLineSeries1.GetYValue(X1-1);
+  end;
+
+  Label1.Caption:=X1.ToString+' ,';
+  Label2.Caption:=XY01[X1,0].ToString + ', '+ XY01[X1,1].ToString;
+end;
+
 procedure TForm1.ctPointsDataPointDragTool1AfterMouseUp(ATool: TChartTool; APoint: TPoint);
 var
   i: Integer;
@@ -306,7 +435,6 @@ procedure TForm1.Button1Click(Sender: TObject);
 begin
   if chPointsLineSeries1.Count>=X1 then
   begin
-    //showmessage(chPointsLineSeries1.Count.ToString+' '+ X1.ToString);
     chPointsLineSeries1.SetYValue(X1-1, FloatSpinEdit1.Value);
     XY01[X1,0]:=chPointsLineSeries1.GetXValue(X1-1);
     XY01[X1,1]:=chPointsLineSeries1.GetYValue(X1-1);
@@ -322,6 +450,7 @@ begin
 
   if (chPointsLineSeries1.Count+1)=X1 then
   begin
+    chPointsLineSeries1.Add(FloatSpinEdit1.Value,'sd',clRed);
     chPointsLineSeries1.AddXY(X1, FloatSpinEdit1.Value);
     XY01[X1,0]:=chPointsLineSeries1.GetXValue(X1-1);
     XY01[X1,1]:=chPointsLineSeries1.GetYValue(X1-1);
@@ -364,6 +493,14 @@ procedure TForm1.Button5Click(Sender: TObject);
 begin
   if FloatSpinEdit1.Increment*10 <=1 then FloatSpinEdit1.Increment:=FloatSpinEdit1.Increment*10;
   Label3.Caption:=FloatSpinEdit1.Increment.ToString;
+end;
+
+procedure TForm1.Button6Click(Sender: TObject);
+begin
+
+  Timer1.Enabled:= not Timer1.Enabled;
+  if Timer1.Enabled then X1:=1;
+  if Timer1.Enabled then Button6.Caption:='Stop' else Button6.Caption:='Start';
 end;
 
 end.
