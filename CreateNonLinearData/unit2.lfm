@@ -1,0 +1,47 @@
+object Form2: TForm2
+  Left = 606
+  Height = 87
+  Top = 115
+  Width = 349
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
+  Caption = 'Rename'
+  ClientHeight = 87
+  ClientWidth = 349
+  Position = poWorkAreaCenter
+  LCLVersion = '4.6.0.0'
+  Scaled = False
+  OnClose = FormClose
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  object Edit1: TEdit
+    Left = 8
+    Height = 24
+    Top = 24
+    Width = 230
+    Font.CharSet = ANSI_CHARSET
+    Font.Height = -13
+    Font.Pitch = fpVariable
+    Font.Quality = fqDraft
+    ParentFont = False
+    TabOrder = 0
+  end
+  object Button1: TButton
+    Left = 254
+    Height = 29
+    Top = 12
+    Width = 91
+    Caption = 'OK'
+    TabOrder = 1
+    OnClick = Button1Click
+  end
+  object Button2: TButton
+    Left = 254
+    Height = 29
+    Top = 48
+    Width = 91
+    Caption = 'Cancel'
+    TabOrder = 2
+    OnClick = Button2Click
+  end
+end
