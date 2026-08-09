@@ -3,8 +3,8 @@ CreateNonLinearData
 
 Keyword:
 
-  - Edit curve by TstringGrid
+  - Create default data sources
 
-  - Double source in one chart
+  - Compare chart data sources
 
 <img src="CreateNonLinearData/SS01.png" width="400" height="400">
